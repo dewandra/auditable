@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('item_transactions', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('item_id');
+            $table->uuid('user_id');
             $table->enum('type', ['in', 'out']);
             $table->integer('quantity');
             $table->text('notes')->nullable();
@@ -24,6 +25,7 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->foreign('item_id')->references('id')->on('items')->onDelete('cascade');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
