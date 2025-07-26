@@ -36,11 +36,7 @@ class UserController extends Controller
             return response()->json($validator->errors(), 422); 
         }
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => bcrypt($request->password),
-        ]);
+        $user = User::create($validator->validated());
 
         if ($request->has('roles')) {
             $roles = Role::WhereIn('name', $request->roles)->get();
