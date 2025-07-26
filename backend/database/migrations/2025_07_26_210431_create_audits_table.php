@@ -12,17 +12,22 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('audits', function (Blueprint $table) {
-            $table->uuid('id')->primary();
+            $table->id();
             $table->uuid('user_id')->nullable();
+            $table->string('user_type')->nullable();
             $table->uuid('auditable_id');
             $table->string('auditable_type');
             $table->string('event');
             $table->json('old_values')->nullable();
             $table->json('new_values')->nullable();
-            $table->string('url')->nullable();
-            $table->string('ip_address')->nullable();
-            $table->string('user_agent')->nullable();
-            $table->timestamp('created_at')->nullable();
+            $table->text('url')->nullable();
+            $table->ipAddress()->nullable();
+            $table->string('user_agent', 1023)->nullable();
+            $table->string('tags')->nullable();
+            $table->timestamps();
+
+            $table->index(['user_id', 'user_type']);
+            $table->index(['auditable_id', 'auditable_type']);
         });
     }
 
