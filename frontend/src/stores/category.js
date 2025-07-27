@@ -13,31 +13,24 @@ export const useCategoryStore = defineStore('category', () => {
     loading.value = true;
     try {
       const response = await apiClient.get('/categories');
-      // Asumsi data kategori ada di dalam `response.data.data`
       categories.value = response.data.data || [];
     } catch (error) {
       console.error("Gagal mengambil data kategori:", error);
-      categories.value = []; // Pastikan tetap array jika error
+      categories.value = [];
     } finally {
       loading.value = false;
     }
   }
 
-  // --- FUNGSI HISTORY YANG DIPERBARUI & LEBIH CERDAS ---
-async function fetchCategoryHistory(categoryId) {
+  async function fetchCategoryHistory(categoryId) {
     loading.value = true;
-    history.value = []; // Selalu kosongkan state sebelum fetch baru
+    history.value = [];
     try {
       const response = await apiClient.get(`/categories/${categoryId}/history`);
-      
-      // KODE PERBAIKAN:
-      // Pesan error mengkonfirmasi bahwa data yang benar ada di dalam `response.data.data`.
-      // Kita langsung ambil array tersebut.
       history.value = response.data.data;
-
     } catch (error) {
       console.error("Gagal mengambil data history:", error);
-      history.value = []; // Pastikan tetap array jika terjadi error
+      history.value = [];
       throw error;
     } finally {
       loading.value = false;
@@ -77,14 +70,41 @@ async function fetchCategoryHistory(categoryId) {
     }
   }
 
-  return { 
-    categories, 
-    history, 
-    loading, 
-    fetchCategories, 
-    fetchCategoryHistory, 
-    createCategory, 
-    updateCategory, 
-    deleteCategory 
+  async function exportCategories() { 
+    try {
+      // Kirim request POST tanpa body, atau dengan body kosong {}
+      const response = await apiClient.post('/categories/export', {});
+      return response.data.download_url;
+    } catch (error) {
+      console.error("Gagal memulai ekspor:", error);
+      throw error;
+    }
+  }
+
+  // --- ACTION BARU UNTUK IMPOR ---
+  async function importCategories(formData) {
+    try {
+      await apiClient.post('/categories/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+    } catch (error) {
+      console.error("Gagal mengimpor file:", error);
+      throw error;
+    }
+  }
+
+  return {
+    categories,
+    history,
+    loading,
+    fetchCategories,
+    fetchCategoryHistory,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    exportCategories, // <-- Daftarkan action baru
+    importCategories, // <-- Daftarkan action baru
   };
 });

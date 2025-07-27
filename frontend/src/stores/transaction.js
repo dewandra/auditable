@@ -1,62 +1,82 @@
-// frontend/src/stores/transaction.js
-
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import apiClient from '../api';
 
 export const useTransactionStore = defineStore('transaction', () => {
-  // --- STATE ---
-  // Menyimpan daftar semua transaksi yang akan ditampilkan di tabel
   const transactions = ref([]);
-  // Menyimpan riwayat audit untuk satu transaksi yang dipilih
   const history = ref([]);
-  // Mengelola status loading untuk menampilkan spinner
   const loading = ref(false);
+  const itemOptions = ref([]);
 
-  /**
-   * Mengambil semua data transaksi dari server.
-   */
   async function fetchTransactions() {
     loading.value = true;
     try {
       const response = await apiClient.get('/item-transactions');
-      // Mengisi state 'transactions' dengan data dari API
       transactions.value = response.data.data || [];
     } catch (error) {
       console.error("Gagal mengambil data transaksi:", error);
-      transactions.value = []; // Kosongkan jika terjadi error
-    } finally {
-      loading.value = false;
-    }
-  }
-  
-  /**
-   * Mengambil riwayat audit untuk satu transaksi spesifik berdasarkan ID.
-   * @param {string} transactionId - ID dari transaksi yang akan dicek riwayatnya.
-   */
-  async function fetchTransactionHistory(transactionId) {
-    loading.value = true;
-    history.value = []; // Kosongkan riwayat lama sebelum mengambil yang baru
-    try {
-      const response = await apiClient.get(`/item-transactions/${transactionId}/history`);
-      // Mengisi state 'history' dengan data riwayat dari API
-      history.value = response.data.data;
-    } catch (error)
-    {
-      console.error("Gagal mengambil data history transaksi:", error);
-      history.value = []; // Kosongkan jika terjadi error
-      throw error; // Lemparkan error agar bisa ditangani di komponen
+      transactions.value = [];
     } finally {
       loading.value = false;
     }
   }
 
-  // Mengembalikan semua state dan action agar bisa digunakan di komponen
+  async function fetchItemOptions() {
+    try {
+      const response = await apiClient.get('/items'); 
+      itemOptions.value = response.data.data.map(item => ({ id: item.id, name: item.name }));
+    } catch (error) {
+      console.error("Gagal mengambil opsi item:", error);
+    }
+  }
+
+  async function fetchTransactionHistory(transactionId) {
+    loading.value = true;
+    history.value = [];
+    try {
+      const response = await apiClient.get(`/item-transactions/${transactionId}/history`);
+      history.value = response.data.data;
+    } catch (error) {
+      console.error("Gagal mengambil data history transaksi:", error);
+      history.value = [];
+      throw error;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function createTransaction(transactionData) {
+    try {
+      const response = await apiClient.post('/item-transactions', transactionData);
+      transactions.value.unshift(response.data.data);
+    } catch (error) {
+      console.error("Gagal membuat transaksi:", error);
+      throw error;
+    }
+  }
+
+  // ======================================================
+  // FUNGSI BARU UNTUK EKSPOR TRANSAKSI
+  // ======================================================
+  async function exportTransactions() {
+    try {
+      const response = await apiClient.post('/item-transactions/export');
+      return response.data;
+    } catch (error) {
+      console.error("Gagal mengekspor transaksi:", error);
+      throw error;
+    }
+  }
+
   return {
     transactions,
     history,
     loading,
+    itemOptions,
     fetchTransactions,
+    fetchItemOptions,
     fetchTransactionHistory,
+    createTransaction,
+    exportTransactions, // <-- Ditambahkan
   };
 });
