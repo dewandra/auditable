@@ -22,7 +22,7 @@ class ItemTransactionResource extends JsonResource
             'notes' => $this->notes,
             'is_verified' => $this->is_verified,
             'metadata' => $this->metadata,
-             'attachment_url' => $this->attachment ? asset('storage/' . $this->attachment) : null,
+            'attachment_url' => $this->attachment ? asset('storage/' . $this->attachment) : null,
             'transaction_date' => $this->created_at->format('d-m-Y H:i:s'),
 
             'item' => new ItemResource($this->whenLoaded('item')),
