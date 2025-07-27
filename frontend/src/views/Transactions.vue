@@ -1,83 +1,111 @@
+<template>
+  <div>
+    <h1 class="text-2xl font-bold mb-6">Riwayat Transaksi Barang</h1>
+
+    <div class="flex justify-between items-center mb-4">
+      <fwb-button @click="openCreateModal">
+        Buat Transaksi Baru
+      </fwb-button>
+    </div>
+
+    <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+      <fwb-table>
+        <fwb-table-head>
+          <fwb-table-head-cell>Tanggal</fwb-table-head-cell>
+          <fwb-table-head-cell>Item</fwb-table-head-cell>
+          <fwb-table-head-cell>Tipe Transaksi</fwb-table-head-cell>
+          <fwb-table-head-cell>Jumlah</fwb-table-head-cell>
+          <fwb-table-head-cell class="text-right">Aksi</fwb-table-head-cell>
+        </fwb-table-head>
+        <fwb-table-body>
+          <tr v-if="transactionStore.loading && transactionStore.transactions.length === 0">
+            <td colspan="5" class="p-4 text-center">
+              <fwb-spinner size="8" class="mr-2" /> Memuat data transaksi...
+            </td>
+          </tr>
+          <tr v-else-if="transactionStore.transactions.length === 0">
+            <td colspan="5" class="p-4 text-center text-gray-500">
+              Belum ada data transaksi yang tercatat.
+            </td>
+          </tr>
+          <fwb-table-row v-else v-for="trx in transactionStore.transactions" :key="trx.id">
+            <fwb-table-cell>{{ trx.transaction_date }}</fwb-table-cell>
+            <fwb-table-cell class="font-semibold">{{ trx.item?.name }}</fwb-table-cell>
+            <fwb-table-cell>
+              <fwb-badge :type="trx.type === 'in' ? 'green' : 'red'">
+                {{ trx.type === 'in' ? 'Barang Masuk' : 'Barang Keluar' }}
+              </fwb-badge>
+            </fwb-table-cell>
+            <fwb-table-cell>{{ trx.quantity }}</fwb-table-cell>
+            <fwb-table-cell class="text-right space-x-2">
+              <fwb-button @click="openHistoryModal(trx)" color="blue" size="sm">
+                History
+              </fwb-button>
+            </fwb-table-cell>
+          </fwb-table-row>
+        </fwb-table-body>
+      </fwb-table>
+    </div>
+
+    <AuditHistoryModal
+      :show="showHistoryModal"
+      :audits="transactionStore.history"
+      :loading="transactionStore.loading"
+      :item-name="`Transaksi: ${selectedTransactionName}`"
+      @close="closeModal"
+    />
+  </div>
+</template>
+
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useTransactionStore } from '../stores/transaction';
-import TransactionModal from '../components/TransactionModal.vue';
+import { ref, onMounted, getCurrentInstance } from 'vue';
+import {
+  FwbButton, FwbTable, FwbTableBody, FwbTableCell, FwbTableHead,
+  FwbTableHeadCell, FwbTableRow, FwbBadge, FwbSpinner
+} from 'flowbite-vue';
+// Mengimpor store dan komponen modal yang relevan
+import { useTransactionStore } from '@/stores/transaction';
+import AuditHistoryModal from '@/components/AuditHistoryModal.vue';
 
+// Inisialisasi store Pinia untuk transaksi
 const transactionStore = useTransactionStore();
-const showModal = ref(false);
-const newTransaction = ref({});
+const instance = getCurrentInstance();
+const { $toast } = instance.appContext.config.globalProperties;
 
+// State lokal untuk mengontrol tampilan modal
+const showHistoryModal = ref(false);
+const selectedTransactionName = ref('');
+
+// Mengambil data transaksi saat komponen pertama kali dimuat
 onMounted(() => {
   transactionStore.fetchTransactions();
 });
 
-const openCreateModal = () => {
-  // Siapkan data default untuk form
-  newTransaction.value = {
-    item_id: '',
-    type: 'in',
-    quantity: 1,
-    notes: ''
-  };
-  showModal.value = true;
+// Fungsi untuk menutup semua modal
+const closeModal = () => {
+  showHistoryModal.value = false;
+  selectedTransactionName.value = '';
 };
 
-// Fungsi ini sekarang hanya meneruskan data
-const handleSubmit = async (dataFromModal) => {
+/**
+ * Membuka modal riwayat dan mengambil data audit untuk transaksi yang dipilih.
+ * @param {object} transaction - Objek data transaksi dari baris tabel.
+ */
+const openHistoryModal = async (transaction) => {
+  // Menyiapkan judul untuk modal
+  selectedTransactionName.value = `${transaction.item_name} (${transaction.quantity} pcs)`;
+  showHistoryModal.value = true;
   try {
-    await transactionStore.createTransaction(dataFromModal);
-    showModal.value = false; // Tutup modal jika sukses
+    // Memanggil action dari store untuk mengambil data riwayat
+    await transactionStore.fetchTransactionHistory(transaction.id);
   } catch (error) {
-    // Tampilkan notifikasi error jika perlu
-    alert('Terjadi kesalahan saat menyimpan transaksi.');
+    $toast.error("Gagal memuat riwayat transaksi.");
+    closeModal(); // Tutup modal jika gagal
   }
 };
+
+// Fungsi placeholder untuk tombol "Buat Transaksi Baru"
+const openCreateModal = () => {
+  $toast.info("Fitur untuk membuat transaksi baru belum diimplementasikan.");
+};
 </script>
-
-<template>
-  <div class="container mx-auto p-4">
-    <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold">Daftar Transaksi</h1>
-      <button @click="openCreateModal" class="bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600">
-        + Buat Transaksi
-      </button>
-    </div>
-    
-    <div class="bg-white shadow-md rounded-lg overflow-x-auto">
-      <table class="min-w-full leading-normal">
-        <thead>
-          <tr>
-            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase">Tanggal</th>
-            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase">Item</th>
-            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase">Tipe</th>
-            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase">Jumlah</th>
-            <th class="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase">Catatan</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="transactionStore.loading">
-            <td colspan="5" class="text-center py-4 animate-pulse">Memuat data...</td>
-          </tr>
-          <tr v-for="trx in transactionStore.transactions" :key="trx.id" class="hover:bg-gray-50">
-            <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ trx.transaction_date }}</td>
-            <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ trx.item?.name }}</td>
-            <td class="px-5 py-4 border-b border-gray-200 text-sm">
-              <span :class="trx.type === 'in' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
-                {{ trx.type === 'in' ? 'Masuk' : 'Keluar' }}
-              </span>
-            </td>
-            <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ trx.quantity }}</td>
-            <td class="px-5 py-4 border-b border-gray-200 text-sm">{{ trx.notes }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <TransactionModal
-      :show="showModal"
-      :transaction="newTransaction"
-      @close="showModal = false"
-      @submit="handleSubmit"
-    />
-  </div>
-</template>

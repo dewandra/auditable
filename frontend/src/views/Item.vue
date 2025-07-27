@@ -3,181 +3,139 @@
     <h1 class="text-2xl font-bold mb-6">Manajemen Item</h1>
 
     <div class="flex justify-between items-center mb-4">
-      <fwb-button @click="openCreateModal">Tambah Item</fwb-button>
-      <div class="w-1/4">
-        <fwb-select
-          v-model="selectedCategory"
-          :options="categoryFilterOptions"
-          label="Filter berdasarkan Kategori"
-          @change="applyFilter"
-        />
-      </div>
+      <fwb-button @click="openCreateModal">
+        Tambah Item
+      </fwb-button>
     </div>
 
-    <fwb-table>
-      <fwb-table-head>
-        <fwb-table-head-cell>Nama Item</fwb-table-head-cell>
-        <fwb-table-head-cell>Kategori</fwb-table-head-cell>
-        <fwb-table-head-cell>Spesifikasi</fwb-table-head-cell>
-        <fwb-table-head-cell>Stok</fwb-table-head-cell>
-        <fwb-table-head-cell>Lampiran</fwb-table-head-cell>
-        <fwb-table-head-cell>Status</fwb-table-head-cell>
-        <fwb-table-head-cell>
-          <span class="sr-only">Actions</span>
-        </fwb-table-head-cell>
-      </fwb-table-head>
-      <fwb-table-body>
-        <fwb-table-row v-for="item in itemStore.items" :key="item.id">
-          <fwb-table-cell>{{ item.name }}</fwb-table-cell>
-          <fwb-table-cell>{{ item.category?.name || '-' }}</fwb-table-cell>
-          <fwb-table-cell>
-            <ul v-if="getSpecs(item.specs) && Object.keys(getSpecs(item.specs)).length" class="text-xs">
-              <li v-for="(value, key) in getSpecs(item.specs)" :key="key">
-                <span class="font-semibold">{{ key }}:</span> {{ value }}
-              </li>
-            </ul>
-            <span v-else>-</span>
-          </fwb-table-cell>
-          <fwb-table-cell>{{ item.quantity }}</fwb-table-cell>
-          <fwb-table-cell>
-            <a v-if="item.file_url" :href="item.file_url" target="_blank" class="text-blue-600 hover:underline">
-              Lihat PDF
-            </a>
-            <span v-else>-</span>
-          </fwb-table-cell>
-          <fwb-table-cell>
-            <fwb-badge :type="item.is_active ? 'green' : 'red'">
-              {{ item.is_active ? 'Aktif' : 'Non-Aktif' }}
-            </fwb-badge>
-          </fwb-table-cell>
-          <fwb-table-cell class="space-x-2">
-            <fwb-button @click="openEditModal(item)" color="yellow" size="sm">Edit</fwb-button>
-            <fwb-button @click="confirmDelete(item)" color="red" size="sm">Hapus</fwb-button>
-          </fwb-table-cell>
-        </fwb-table-row>
-        <fwb-table-row v-if="!itemStore.items.length && !itemStore.loading">
-            <fwb-table-cell :colspan="7" class="text-center">
-                Tidak ada data item ditemukan.
+    <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+      <fwb-table>
+        <fwb-table-head>
+          <fwb-table-head-cell>Nama Item</fwb-table-head-cell>
+          <fwb-table-head-cell>Kategori</fwb-table-head-cell>
+          <fwb-table-head-cell>Stok</fwb-table-head-cell>
+          <fwb-table-head-cell>Status</fwb-table-head-cell>
+          <fwb-table-head-cell class="text-right">Aksi</fwb-table-head-cell>
+        </fwb-table-head>
+        <fwb-table-body>
+          <tr v-if="itemStore.loading && itemStore.items.length === 0">
+            <td colspan="5" class="p-4 text-center">
+              <fwb-spinner /> Memuat data...
+            </td>
+          </tr>
+          <tr v-else-if="itemStore.items.length === 0">
+            <td colspan="5" class="p-4 text-center text-gray-500">
+              Belum ada data item.
+            </td>
+          </tr>
+          <fwb-table-row v-else v-for="item in itemStore.items" :key="item.id">
+            <fwb-table-cell class="font-semibold">{{ item.name }}</fwb-table-cell>
+            <fwb-table-cell>{{ item.category?.name || 'N/A' }}</fwb-table-cell>
+            <fwb-table-cell>{{ item.stock }}</fwb-table-cell>
+            <fwb-table-cell>
+              <fwb-badge :type="item.is_active ? 'green' : 'red'">
+                {{ item.is_active ? 'Aktif' : 'Non-Aktif' }}
+              </fwb-badge>
             </fwb-table-cell>
-        </fwb-table-row>
-      </fwb-table-body>
-    </fwb-table>
-
-    <ItemModal
-      :show="showItemModal"
-      :item="itemToEdit"
+            <fwb-table-cell class="text-right space-x-2">
+              <fwb-button @click="openHistoryModal(item)" color="blue" size="sm">History</fwb-button>
+              <fwb-button @click="openEditModal(item)" color="yellow" size="sm">Edit</fwb-button>
+              <fwb-button @click="confirmDelete(item)" color="red" size="sm">Hapus</fwb-button>
+            </fwb-table-cell>
+          </fwb-table-row>
+        </fwb-table-body>
+      </fwb-table>
+    </div>
+    
+    <AuditHistoryModal
+      :show="showHistoryModal"
+      :audits="itemStore.history"
+      :loading="itemStore.loading"
+      :item-name="selectedItemName"
       @close="closeModal"
-      @submit="handleSubmit"
     />
   </div>
 </template>
 
 <script setup>
-// Bagian script tidak perlu diubah dari versi sebelumnya yang sudah benar.
-import { ref, onMounted, computed, getCurrentInstance } from 'vue';
+import { ref, onMounted, getCurrentInstance } from 'vue';
 import {
   FwbButton, FwbTable, FwbTableBody, FwbTableCell, FwbTableHead,
-  FwbTableHeadCell, FwbTableRow, FwbBadge, FwbSelect
+  FwbTableHeadCell, FwbTableRow, FwbBadge, FwbSpinner
 } from 'flowbite-vue';
 import { useItemStore } from '@/stores/item';
-import { useCategoryStore } from '@/stores/category';
-import ItemModal from '@/components/ItemModal.vue';
+import AuditHistoryModal from '@/components/AuditHistoryModal.vue';
 
-const instance = getCurrentInstance();
+// Inisialisasi store Pinia untuk item
 const itemStore = useItemStore();
-const categoryStore = useCategoryStore();
+const instance = getCurrentInstance();
+const { $toast, $swal } = instance.appContext.config.globalProperties;
 
-const showItemModal = ref(false);
+// State untuk modal
+const showHistoryModal = ref(false);
+const selectedItemName = ref('');
+
+// State untuk modal CRUD (bisa Anda kembangkan nanti)
+const showItemModal = ref(false); 
+const isEditMode = ref(false);
 const itemToEdit = ref(null);
-const selectedCategory = ref('');
-
-const getSpecs = (specs) => {
-  if (!specs) return null;
-  if (typeof specs === 'object') return specs;
-  try {
-    return JSON.parse(specs);
-  } catch (e) {
-    return null;
-  }
-};
-
-const categoryFilterOptions = computed(() => {
-    const options = categoryStore.categories.map(cat => ({ value: cat.id, name: cat.name }));
-    options.unshift({ value: '', name: 'Semua Kategori' });
-    return options;
-});
 
 onMounted(() => {
   itemStore.fetchItems();
-  categoryStore.fetchCategories();
 });
 
-const applyFilter = () => {
-    itemStore.fetchItems({ category_id: selectedCategory.value });
-};
-
 const closeModal = () => {
+  showHistoryModal.value = false;
+  selectedItemName.value = '';
   showItemModal.value = false;
+  isEditMode.value = false;
   itemToEdit.value = null;
 };
 
+// Fungsi untuk membuka modal history
+const openHistoryModal = async (item) => {
+  selectedItemName.value = item.name;
+  showHistoryModal.value = true;
+  try {
+    await itemStore.fetchItemHistory(item.id);
+  } catch (error) {
+    $toast.error("Gagal memuat riwayat item.");
+    closeModal();
+  }
+};
+
+// Fungsi placeholder untuk CRUD (bisa Anda lengkapi)
 const openCreateModal = () => {
+  // $toast.info("Fitur Tambah Item belum diimplementasikan.");
+  isEditMode.value = false;
   itemToEdit.value = null;
   showItemModal.value = true;
 };
 
 const openEditModal = (item) => {
+  // $toast.info(`Fitur Edit untuk item "${item.name}" belum diimplementasikan.`);
+  isEditMode.value = true;
   itemToEdit.value = { ...item };
   showItemModal.value = true;
 };
 
-const handleSubmit = async (formData) => {
-  try {
-    const isEdit = !!itemToEdit.value;
-    if (isEdit) {
-      await itemStore.updateItem(itemToEdit.value.id, formData);
-    } else {
-      await itemStore.createItem(formData);
-    }
-    closeModal();
-    await itemStore.fetchItems({ category_id: selectedCategory.value });
-    instance.proxy.$swal({
-      toast: true, position: 'top-end', showConfirmButton: false, timer: 3000,
-      icon: 'success', title: isEdit ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!',
-    });
-  } catch (error) {
-    if (error.response && error.response.status === 422) {
-      const validationErrors = error.response.data.errors;
-      const errorMessages = Object.values(validationErrors)
-        .map(messages => `<li>${messages.join('</li><li>')}</li>`)
-        .join('');
-      instance.proxy.$swal({
-        icon: 'error',
-        title: 'Validasi Gagal',
-        html: `<ul class="text-left list-disc list-inside">${errorMessages}</ul>`,
-      });
-    } else {
-      instance.proxy.$swal({
-        icon: 'error',
-        title: 'Oops...',
-        text: 'Terjadi kesalahan saat menyimpan data.',
-      });
-    }
-  }
-};
-
 const confirmDelete = (item) => {
-  instance.proxy.$swal({
-    title: 'Apakah Anda yakin?', text: `Anda akan menghapus item "${item.name}".`,
-    icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33',
-    cancelButtonColor: '#3085d6', confirmButtonText: 'Ya, hapus!', cancelButtonText: 'Batal',
+  $swal.fire({
+    title: 'Anda yakin?',
+    text: `Anda akan menghapus item "${item.name}".`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Ya, hapus!',
+    cancelButtonText: 'Batal',
   }).then(async (result) => {
     if (result.isConfirmed) {
       try {
         await itemStore.deleteItem(item.id);
-        instance.proxy.$swal('Dihapus!', 'Item berhasil dihapus.', 'success');
+        $toast.success('Item berhasil dihapus.');
       } catch (error) {
-        instance.proxy.$swal('Gagal!', error.message || 'Gagal menghapus item.', 'error');
+        $toast.error('Gagal menghapus item.');
       }
     }
   });
