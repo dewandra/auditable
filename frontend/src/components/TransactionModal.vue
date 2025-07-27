@@ -1,128 +1,78 @@
-<template>
-  <fwb-modal v-if="props.show" @close="closeModal" persistent>
-    <template #header>
-      <h3 class="text-xl font-semibold">Catat Transaksi Baru</h3>
-    </template>
-    <template #body>
-      <form @submit.prevent="submitForm" id="transactionForm" class="space-y-4">
-        <fwb-select v-model="form.type" :options="transactionTypes" label="Tipe Transaksi" required />
-        <fwb-select v-model="form.item_id" :options="itemOptions" label="Pilih Item" required />
-        <fwb-input v-model.number="form.quantity" type="number" label="Kuantitas" :min="1" required />
-        <div v-if="selectedItem" class="text-sm text-gray-600 p-3 bg-gray-50 rounded-lg">
-          <p><strong>Stok Saat Ini:</strong> {{ selectedItem.quantity }}</p>
-          <p v-if="form.type === 'out' && form.quantity > selectedItem.quantity" class="text-red-500 font-bold">
-            Kuantitas melebihi stok yang tersedia!
-          </p>
-        </div>
-        <fwb-textarea v-model="form.notes" label="Catatan (Opsional)" :rows="3" />
-
-        <div>
-          <label for="attachment-upload" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-            Lampiran (Opsional, PDF, 100-500 KB)
-          </label>
-          <input 
-            id="attachment-upload"
-            ref="fileInput" 
-            type="file" 
-            class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400"
-            accept=".pdf"
-          >
-        </div>
-      </form>
-    </template>
-    <template #footer>
-      <div class="flex justify-end">
-        <fwb-button @click="closeModal" color="alternative">Batal</fwb-button>
-        <fwb-button type="submit" form="transactionForm" color="green" class="ml-2" :loading="isSubmitting" :disabled="isSubmitDisabled">
-          Simpan Transaksi
-        </fwb-button>
-      </div>
-    </template>
-  </fwb-modal>
-</template>
-
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { FwbModal, FwbButton, FwbInput, FwbSelect, FwbTextarea } from 'flowbite-vue';
-import { useItemStore } from '@/stores/item';
+import { ref, watch, defineProps, defineEmits } from 'vue';
+import { useItemStore } from '../stores/item';
 
-const props = defineProps({ show: Boolean });
+const props = defineProps({
+  show: Boolean,
+  transaction: Object,
+});
+
 const emit = defineEmits(['close', 'submit']);
+
 const itemStore = useItemStore();
+const transactionData = ref({});
 
-// Ref untuk menampung elemen input file
-const fileInput = ref(null);
-
-const form = ref({
-  item_id: '',
-  type: 'in',
-  quantity: 1,
-  notes: '',
-});
-
-const isSubmitting = ref(false);
-
-const transactionTypes = [
-  { value: 'in', name: 'Stok Masuk' },
-  { value: 'out', name: 'Stok Keluar (Penjualan)' },
-];
-
-const itemOptions = computed(() =>
-  itemStore.items
-    .filter(item => item.is_active)
-    .map(item => ({ value: item.id, name: `${item.name} (Stok: ${item.quantity})` }))
-);
-
-const selectedItem = computed(() => {
-  if (!form.value.item_id) return null;
-  return itemStore.items.find(i => i.id === form.value.item_id);
-});
-
-const isSubmitDisabled = computed(() => {
-  if (form.value.type === 'out' && selectedItem.value) {
-    return form.value.quantity > selectedItem.value.quantity;
+// Meng-copy data props ke state lokal saat modal dibuka
+watch(() => props.show, (newVal) => {
+  if (newVal) {
+    transactionData.value = { ...props.transaction };
+    if (!itemStore.items.length) {
+      itemStore.fetchItems();
+    }
   }
-  return false;
-});
+}, { immediate: true });
 
-onMounted(async () => {
-  if (itemStore.items.length === 0) {
-    await itemStore.fetchItems();
-  }
-});
-
-const resetForm = () => {
-  form.value = { item_id: '', type: 'in', quantity: 1, notes: '' };
-  // Reset juga input file agar kosong saat modal dibuka lagi
-  if (fileInput.value) {
-    fileInput.value.value = '';
-  }
-};
-
-const closeModal = () => {
-  resetForm();
-  emit('close');
-};
-
-const submitForm = async () => {
-  if (isSubmitDisabled.value) return;
-  isSubmitting.value = true;
-  
-  const formData = new FormData();
-  formData.append('item_id', form.value.item_id);
-  formData.append('type', form.value.type);
-  formData.append('quantity', form.value.quantity);
-  formData.append('notes', form.value.notes || '');
-
-  // Ambil file langsung dari ref, ini cara paling aman
-  if (fileInput.value && fileInput.value.files[0]) {
-    formData.append('attachment', fileInput.value.files[0]);
-  }
-
-  try {
-    await emit('submit', formData);
-  } finally {
-    isSubmitting.value = false;
-  }
+const submitForm = () => {
+  emit('submit', transactionData.value);
 };
 </script>
+
+<template>
+  <div v-if="show" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+    <div class="relative mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+      <div class="mt-3 text-center">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Buat Transaksi Baru</h3>
+        <div class="mt-2 px-7 py-3">
+          <form @submit.prevent="submitForm" class="text-left">
+            <div class="mb-4">
+              <label for="item_id" class="block text-sm font-medium text-gray-700">Item</label>
+              <select id="item_id" v-model="transactionData.item_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                <option disabled value="">Pilih item</option>
+                <option v-for="item in itemStore.items" :key="item.id" :value="item.id">
+                  {{ item.name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label for="type" class="block text-sm font-medium text-gray-700">Tipe</label>
+              <select id="type" v-model="transactionData.type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                <option value="in">Masuk</option>
+                <option value="out">Keluar</option>
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label for="quantity" class="block text-sm font-medium text-gray-700">Jumlah</label>
+              <input type="number" id="quantity" v-model="transactionData.quantity" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+            </div>
+
+            <div class="mb-4">
+              <label for="notes" class="block text-sm font-medium text-gray-700">Catatan</label>
+              <textarea id="notes" v-model="transactionData.notes" rows="3" class="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"></textarea>
+            </div>
+            
+            <div class="items-center px-4 py-3 space-y-2">
+              <button type="submit" class="w-full px-4 py-2 bg-indigo-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none">
+                Simpan
+              </button>
+              <button type="button" @click="$emit('close')" class="w-full px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-300 focus:outline-none">
+                Batal
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import apiClient from '../api';
+import apiClient from '../api'; // Pastikan path ini benar
 import { useItemStore } from './item';
 
 export const useTransactionStore = defineStore('transaction', () => {
@@ -20,19 +20,29 @@ export const useTransactionStore = defineStore('transaction', () => {
     }
   }
   
-async function createTransaction(transactionData) {
+  // Fungsi ini sekarang sangat sederhana
+  // Hanya mengirim objek JavaScript (JSON)
+  async function createTransaction(transactionData) {
+    loading.value = true;
     try {
-      // PENTING: Jangan set header manual. Biarkan browser yang melakukannya.
       const response = await apiClient.post('/item-transactions', transactionData);
       
+      // Refresh data
       transactions.value.unshift(response.data.data);
       await itemStore.fetchItems();
     } catch (error) {
       console.error("Gagal membuat transaksi:", error);
-      throw error;
+      // Lemparkan error agar bisa ditangani di komponen
+      throw error; 
+    } finally {
+      loading.value = false;
     }
   }
 
-
-  return { transactions, loading, fetchTransactions, createTransaction };
+  return { 
+    transactions, 
+    loading, 
+    fetchTransactions, 
+    createTransaction 
+  };
 });
