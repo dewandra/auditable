@@ -22,7 +22,7 @@ class ItemResource extends JsonResource
             'quantity' => $this->quantity,
             'is_active' => $this->is_active,
             'specs' => $this->specs,
-            'file_url' => $this->file_path ? Storage::disk('public')->url($this->file_path) : null,
+            'file_url' => $this->file_path ? asset('storage/' . $this->file_path) : null,
             'created_at' => $this->created_at->format('d-m-Y H:i:s'),
             'updated_at' => $this->updated_at->format('d-m-Y H:i:s'),
             'category' => new CategoryResource($this->whenLoaded('category')),

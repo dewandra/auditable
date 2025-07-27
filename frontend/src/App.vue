@@ -13,6 +13,18 @@
           <router-link v-if="authStore.isAuthenticated" to="/roles" class="hover:text-gray-300">
             Roles
           </router-link>
+
+          <router-link v-if="authStore.isAuthenticated" to="/categories" class="hover:text-gray-300">
+            Kategori
+          </router-link>
+
+          <router-link v-if="authStore.isAuthenticated" to="/items" class="hover:text-gray-300">
+            Items
+          </router-link>
+
+          <router-link v-if="authStore.isAuthenticated" to="/transactions" class="hover:text-gray-300">
+            Transactions
+          </router-link>
           
           <router-link v-if="isAdmin" to="/users" class="hover:text-gray-300">
             Users

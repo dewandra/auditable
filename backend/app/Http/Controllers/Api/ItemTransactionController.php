@@ -39,7 +39,7 @@ class ItemTransactionController extends Controller
         $data['user_id'] = Auth::id();
 
         try {
-            $transaction = DB::transaction(function () use ($data, $request) {
+            $transaction = DB::transaction(function () use (&$data, $request) {
                 if ($request->hasFile('attachment')) {
                     $data['attachment'] = $request->file('attachment')->store('attachments', 'public');
                 }

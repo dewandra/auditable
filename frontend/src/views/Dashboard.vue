@@ -26,6 +26,19 @@
           </fwb-card>
         </router-link>
 
+        <router-link to="/categories" class="block hover:scale-105 transition-transform duration-200">
+          <fwb-card class="h-full">
+            <div class="p-2 text-center">
+              <h5 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                Kelola Kategori
+              </h5>
+              <p class="font-normal text-gray-700 dark:text-gray-400">
+                Tambah, edit, atau hapus kategori.
+              </p>
+            </div>
+          </fwb-card>
+        </router-link>
+
         <router-link v-if="isAdmin" to="/users" class="block hover:scale-105 transition-transform duration-200">
           <fwb-card class="h-full">
             <div class="p-2 text-center">
