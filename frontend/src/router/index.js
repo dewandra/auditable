@@ -5,6 +5,9 @@ import Dashboard from '../views/Dashboard.vue';
 import { useAuthStore } from '../stores/auth';
 import Roles from '../views/Roles.vue';
 import Users from '../views/Users.vue';
+import Categories from '../views/Categories.vue';
+import Item from '../views/Item.vue';
+import Transactions from '../views/Transactions.vue';
 
 const routes = [
   {
@@ -31,11 +34,29 @@ const routes = [
     component: Roles,
     meta: { requiresAuth: true }
   },
-    {
+  {
     path: '/users',
     name: 'UserManagement',
     component: Users,
     meta: { requiresAuth: true, requiresAdmin: true } // <-- META UNTUK ADMIN
+  },
+  {
+    path: '/categories',
+    name: 'CategoryManagement',
+    component: Categories,
+    meta: { requiresAuth: true },
+  },
+    {
+    path: '/items',
+    name: 'ItemManagement',
+    component: Item,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/transactions',
+    name: 'TransactionManagement',
+    component: Transactions,
+    meta: { requiresAuth: true },
   },
 ];
 

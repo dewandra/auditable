@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\ItemTransaction;
 
+use App\Models\Item;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
