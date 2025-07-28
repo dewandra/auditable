@@ -49,6 +49,8 @@ export const useCategoryStore = defineStore('category', () => {
 
   async function updateCategory(categoryId, categoryData) {
     try {
+      // Perbaikan: Gunakan POST untuk update jika backend Anda menggunakan route resource partial
+      // atau tetap PUT jika menggunakan metode standar. Sesuaikan jika perlu.
       const response = await apiClient.put(`/categories/${categoryId}`, categoryData);
       const index = categories.value.findIndex(c => c.id === categoryId);
       if (index !== -1) {
@@ -70,25 +72,23 @@ export const useCategoryStore = defineStore('category', () => {
     }
   }
 
-  async function exportCategories() { 
+  async function exportCategories() {
     try {
-      // Kirim request POST tanpa body, atau dengan body kosong {}
-      const response = await apiClient.post('/categories/export', {});
-      return response.data.download_url;
+      const response = await apiClient.post('/categories/export');
+      return response.data; // Kembalikan seluruh data respons
     } catch (error) {
-      console.error("Gagal memulai ekspor:", error);
+      console.error("Gagal memulai ekspor kategori:", error);
       throw error;
     }
   }
 
-  // --- ACTION BARU UNTUK IMPOR ---
   async function importCategories(formData) {
     try {
-      await apiClient.post('/categories/import', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      // Kembalikan respons agar pesan sukses bisa ditampilkan
+      const response = await apiClient.post('/categories/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
+      return response.data; // PENTING: Kembalikan respons
     } catch (error) {
       console.error("Gagal mengimpor file:", error);
       throw error;
@@ -104,7 +104,7 @@ export const useCategoryStore = defineStore('category', () => {
     createCategory,
     updateCategory,
     deleteCategory,
-    exportCategories, // <-- Daftarkan action baru
-    importCategories, // <-- Daftarkan action baru
+    exportCategories,
+    importCategories,
   };
 });

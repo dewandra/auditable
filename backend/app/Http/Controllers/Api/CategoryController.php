@@ -11,6 +11,7 @@ use App\Http\Resources\CategoryResource;
 use App\Imports\CategoriesImport;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class CategoryController extends Controller
 {
@@ -77,11 +78,18 @@ class CategoryController extends Controller
 
     public function export(Request $request)
     {
+        // Membuat nama file yang unik berdasarkan waktu
         $fileName = 'categories_export_' . time() . '.xlsx';
+
+        // Menjalankan proses pembuatan file Excel di background menggunakan queue
+        // File akan disimpan di dalam 'storage/app/public'
         (new CategoriesExport)->queue($fileName, 'public');
+
+        // Mengembalikan respons ke frontend secara langsung
         return response()->json([
             'message' => 'Proses ekspor kategori sedang berjalan di background.',
-            'download_url' => asset('storage/' . $fileName)
+            // Memberikan URL yang akan digunakan frontend untuk mengunduh file setelah selesai
+            'download_url' => Storage::disk('public')->url($fileName)
         ]);
     }
 

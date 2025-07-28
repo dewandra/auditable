@@ -124,9 +124,17 @@ const handleSubmit = async (formData) => {
         } else {
             await itemStore.createItem(formData);
         }
-        $toast.success(successMessage);
+        
+        // Ganti toast dengan SweetAlert
+        $swal.fire({
+          icon: 'success',
+          title: 'Berhasil!',
+          text: successMessage,
+        });
+
         closeModal();
     } catch (error) {
+        // Notifikasi error tetap menggunakan toast agar tidak terlalu mengganggu
         $toast.error(error.response?.data?.message || 'Terjadi kesalahan.');
     }
 };
@@ -157,7 +165,12 @@ const confirmDelete = (item) => {
     if (result.isConfirmed) {
       try {
         await itemStore.deleteItem(item.id);
-        $toast.success('Item berhasil dihapus.');
+        // Tampilkan notifikasi sukses dari SweetAlert
+        $swal.fire(
+          'Dihapus!',
+          'Item berhasil dihapus.',
+          'success'
+        );
       } catch (error) {
         $toast.error(error.response?.data?.message || 'Gagal menghapus item.');
       }
@@ -176,37 +189,74 @@ const openHistoryModal = async (item) => {
 // ========================================================================
 
 const handleExport = async () => {
+  const fieldsToExport = ['id', 'name', 'category', 'quantity', 'is_active', 'created_at'];
+
+  // 1. Konfirmasi awal kepada pengguna
   $swal.fire({
     title: 'Ekspor Data Item',
-    text: 'Anda akan mengekspor semua data item ke dalam file Excel. Lanjutkan?',
+    text: 'Anda akan mengekspor data item ke dalam file Excel. Lanjutkan?',
     icon: 'question',
     showCancelButton: true,
     confirmButtonText: 'Ya, Lanjutkan!',
     cancelButtonText: 'Batal',
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const toastId = $toast.info('Mempersiapkan file ekspor...', { timeout: false });
+      // 2. Tampilkan SweetAlert "Loading" yang tidak bisa ditutup
+      $swal.fire({
+        title: 'Mempersiapkan Ekspor...',
+        html: 'Mohon tunggu, file sedang dibuat di server. ⏳',
+        timerProgressBar: true,
+        allowOutsideClick: false, // Mencegah klik di luar modal
+        allowEscapeKey: false,    // Mencegah menutup dengan tombol Esc
+        didOpen: () => {
+          Swal.showLoading(); // Menampilkan ikon loading
+        },
+      });
+
       try {
-        const response = await itemStore.exportItems();
+        // 3. Panggil API untuk memulai proses di backend
+        const response = await itemStore.exportItems({
+          fields: fieldsToExport,
+        });
+
         const downloadUrl = response.download_url;
 
-        $toast.dismiss(toastId);
+        // 4. Tunggu 7 detik agar server selesai membuat file
+        setTimeout(() => {
+          // 5. Tutup SweetAlert loading
+          Swal.close();
 
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.setAttribute('download', 'items-export.xlsx');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+          // 6. Mulai unduhan file
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          link.setAttribute('download', 'items-export.xlsx');
+          link.style.display = 'none';
 
-        $swal.fire('Berhasil!', 'File ekspor telah berhasil diunduh.', 'success');
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          // 7. (Opsional) Tampilkan notifikasi sukses singkat
+          $swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Unduhan file ekspor telah dimulai.',
+            timer: 2000, // Hilang setelah 2 detik
+            showConfirmButton: false
+          });
+
+        }, 7000); // Waktu tunggu 7 detik
 
       } catch (error) {
+        // Jika terjadi error, tutup loading dan tampilkan pesan error
+        Swal.close();
         const errorMessage = error.response?.data?.message || "Gagal mengekspor data.";
-        $toast.update(toastId, {
-          content: errorMessage,
-          options: { type: 'error', timeout: 5000 }
+        $swal.fire({
+            icon: 'error',
+            title: 'Oops... Terjadi Kesalahan',
+            text: errorMessage,
         });
+        console.error('Export Error:', error);
       }
     }
   });
@@ -234,16 +284,22 @@ const handleFileImport = async (event) => {
       
       const toastId = $toast.info('Mengunggah file, mohon tunggu...', { timeout: false });
       try {
-        const response = await itemStore.importItems(formData);
+                const response = await itemStore.importItems(formData);
         
-        $toast.update(toastId, {
-          content: response.message || 'File diterima! Proses impor berjalan di background.',
-          options: { type: 'success', timeout: 8000 }
+        // Hentikan toast loading dan tampilkan SweetAlert sukses
+        $toast.dismiss(toastId);
+        $swal.fire({
+            icon: 'success',
+            title: 'Impor Berhasil Dimulai!',
+            text: response.message || 'File Anda telah diterima dan akan diproses di background. Data akan diperbarui secara otomatis.',
+            timer: 5000,
+            showConfirmButton: false,
         });
         
+        // Tetap jalankan refresh data setelah beberapa saat
         setTimeout(() => {
           itemStore.fetchItems();
-          $toast.success('Data item diperbarui!');
+          $toast.info('Memperbarui daftar item...');
         }, 5000); 
 
       } catch (error) {
