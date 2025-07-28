@@ -26,78 +26,52 @@
     <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
       <fwb-table>
         <fwb-table-head>
-          <fwb-table-head-cell>Nama Kategori</fwb-table-head-cell>
-          <fwb-table-head-cell>Deskripsi</fwb-table-head-cell>
-          <fwb-table-head-cell>Status</fwb-table-head-cell>
-          <fwb-table-head-cell class="text-right">Aksi</fwb-table-head-cell>
+            <fwb-table-head-cell>Nama Kategori</fwb-table-head-cell>
+            <fwb-table-head-cell>Deskripsi</fwb-table-head-cell>
+            <fwb-table-head-cell>Status</fwb-table-head-cell>
+            <fwb-table-head-cell class="text-right">Aksi</fwb-table-head-cell>
         </fwb-table-head>
         <fwb-table-body>
-          <tr v-if="categoryStore.loading && categoryStore.categories.length === 0">
-            <td colspan="4" class="p-4 text-center">
-              <fwb-spinner /> Memuat data...
-            </td>
-          </tr>
-          <tr v-else-if="categoryStore.categories.length === 0">
-            <td colspan="4" class="p-4 text-center text-gray-500">
-              Belum ada data kategori.
-            </td>
-          </tr>
-          <fwb-table-row v-else v-for="category in categoryStore.categories" :key="category.id">
-            <fwb-table-cell class="font-semibold">{{ category.name }}</fwb-table-cell>
-            <fwb-table-cell>{{ category.description || '-' }}</fwb-table-cell>
-            <fwb-table-cell>
-              <fwb-badge :type="category.is_active ? 'green' : 'red'">
-                {{ category.is_active ? 'Aktif' : 'Non-Aktif' }}
-              </fwb-badge>
-            </fwb-table-cell>
-            <fwb-table-cell class="text-right space-x-2">
-              <fwb-button @click="openHistoryModal(category)" color="dark" size="sm">History</fwb-button>
-              <fwb-button @click="openEditModal(category)" color="yellow" size="sm">Edit</fwb-button>
-              <fwb-button @click="confirmDelete(category)" color="red" size="sm">Hapus</fwb-button>
-            </fwb-table-cell>
-          </fwb-table-row>
+            <tr v-if="categoryStore.loading && categoryStore.categories.length === 0">
+                <td colspan="4" class="p-4 text-center"><fwb-spinner /> Memuat data...</td>
+            </tr>
+            <tr v-else-if="categoryStore.categories.length === 0">
+                <td colspan="4" class="p-4 text-center text-gray-500">Belum ada data kategori.</td>
+            </tr>
+            <fwb-table-row v-else v-for="category in categoryStore.categories" :key="category.id">
+                <fwb-table-cell class="font-semibold">{{ category.name }}</fwb-table-cell>
+                <fwb-table-cell>{{ category.description || '-' }}</fwb-table-cell>
+                <fwb-table-cell>
+                    <fwb-badge :type="category.is_active ? 'green' : 'red'">
+                        {{ category.is_active ? 'Aktif' : 'Non-Aktif' }}
+                    </fwb-badge>
+                </fwb-table-cell>
+                <fwb-table-cell class="text-right space-x-2">
+                    <fwb-button @click="openHistoryModal(category)" color="dark" size="sm">History</fwb-button>
+                    <fwb-button @click="openEditModal(category)" color="yellow" size="sm">Edit</fwb-button>
+                    <fwb-button @click="confirmDelete(category)" color="red" size="sm">Hapus</fwb-button>
+                </fwb-table-cell>
+            </fwb-table-row>
         </fwb-table-body>
       </fwb-table>
     </div>
 
-    <CategoryModal
-      :show="showCategoryModal"
-      :is-edit="isEditMode"
-      :category="categoryToEdit"
-      @close="closeModal"
-      @submit="handleSubmit"
-    />
-
-    <AuditHistoryModal
-      :show="showHistoryModal"
-      :audits="categoryStore.history"
-      :loading="categoryStore.loading"
-      :item-name="selectedCategoryName"
-      @close="closeModal"
-    />
+    <CategoryModal :show="showCategoryModal" :is-edit="isEditMode" :category="categoryToEdit" @close="closeModal" @submit="handleSubmit" />
+    <AuditHistoryModal :show="showHistoryModal" :audits="categoryStore.history" :loading="categoryStore.loading" :item-name="selectedCategoryName" @close="closeModal" />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import {
-  FwbButton, FwbTable, FwbTableBody, FwbTableCell, FwbTableHead,
-  FwbTableHeadCell, FwbTableRow, FwbBadge, FwbSpinner
-} from 'flowbite-vue';
+import { FwbButton, FwbTable, FwbTableBody, FwbTableCell, FwbTableHead, FwbTableHeadCell, FwbTableRow, FwbBadge, FwbSpinner } from 'flowbite-vue';
 import { useCategoryStore } from '@/stores/category';
 import CategoryModal from '@/components/CategoryModal.vue';
 import AuditHistoryModal from '@/components/AuditHistoryModal.vue';
-
-// ========================================================================
-// PERBAIKAN FINAL: Impor langsung dari pustaka (cara paling stabil)
-// ========================================================================
 import { useToast } from 'vue-toastification';
 import Swal from 'sweetalert2';
 
-// Inisialisasi plugin dengan cara yang benar dan dijamin tidak akan 'undefined'
 const $toast = useToast();
 const $swal = Swal;
-// ========================================================================
 
 const categoryStore = useCategoryStore();
 const showCategoryModal = ref(false);
@@ -119,10 +93,6 @@ const closeModal = () => {
   isEditMode.value = false;
 };
 
-// ========================================================================
-// FUNGSI CRUD (TETAP DENGAN SWEETALERT & TOAST)
-// ========================================================================
-
 const openCreateModal = () => {
   isEditMode.value = false;
   categoryToEdit.value = null;
@@ -135,6 +105,7 @@ const openEditModal = (category) => {
   showCategoryModal.value = true;
 };
 
+// ## PERBAIKAN 1: Notifikasi SweetAlert untuk Tambah & Edit
 const handleSubmit = async (formData) => {
   const isUpdating = isEditMode.value;
   const successMessage = isUpdating ? 'Kategori berhasil diperbarui!' : 'Kategori berhasil ditambahkan!';
@@ -145,13 +116,20 @@ const handleSubmit = async (formData) => {
     } else {
       await categoryStore.createCategory(formData);
     }
-    $toast.success(successMessage);
+    // Ganti toast dengan SweetAlert
+    $swal.fire({
+      icon: 'success',
+      title: 'Berhasil!',
+      text: successMessage,
+    });
     closeModal();
   } catch (error) {
+    // Notifikasi error tetap menggunakan toast agar tidak terlalu mengganggu
     $toast.error(error.response?.data?.message || 'Terjadi kesalahan.');
   }
 };
 
+// ## PERBAIKAN 2: Notifikasi SweetAlert untuk Hapus
 const confirmDelete = (category) => {
   $swal.fire({
     title: 'Anda yakin?',
@@ -166,7 +144,8 @@ const confirmDelete = (category) => {
     if (result.isConfirmed) {
       try {
         await categoryStore.deleteCategory(category.id);
-        $toast.success('Kategori berhasil dihapus.');
+        // Tampilkan notifikasi sukses dari SweetAlert
+        $swal.fire('Dihapus!', 'Kategori berhasil dihapus.', 'success');
       } catch (error) {
         $toast.error(error.response?.data?.message || 'Gagal menghapus kategori.');
       }
@@ -185,13 +164,10 @@ const openHistoryModal = async (category) => {
   }
 };
 
-// ========================================================================
-// FUNGSI EKSPOR & IMPOR (KINI DENGAN SWEETALERT UNTUK KONFIRMASI)
-// ========================================================================
-
+// ## PERBAIKAN 3: Fungsi Ekspor dengan SweetAlert Loading
 const handleExport = async () => {
   $swal.fire({
-    title: 'Ekspor Data',
+    title: 'Ekspor Data Kategori',
     text: 'Anda akan mengekspor semua data kategori ke dalam file Excel. Lanjutkan?',
     icon: 'question',
     showCancelButton: true,
@@ -199,32 +175,49 @@ const handleExport = async () => {
     cancelButtonText: 'Batal',
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const toastId = $toast.info('Mempersiapkan file ekspor...', { timeout: false });
+      $swal.fire({
+        title: 'Mempersiapkan Ekspor...',
+        html: 'Mohon tunggu, file sedang dibuat di server. ⏳',
+        timerProgressBar: true,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
       try {
         const response = await categoryStore.exportCategories();
         const downloadUrl = response.download_url;
 
-        $toast.dismiss(toastId);
+        setTimeout(() => {
+          Swal.close();
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          link.setAttribute('download', 'categories-export.xlsx');
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
 
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.setAttribute('download', 'categories-export.xlsx');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        $swal.fire({
-          title: 'Berhasil!',
-          text: 'File ekspor telah berhasil diunduh.',
-          icon: 'success'
-        });
+          $swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Unduhan file ekspor telah dimulai.',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        }, 5000); // Waktu tunggu 5 detik (sesuaikan jika perlu)
 
       } catch (error) {
+        Swal.close();
         const errorMessage = error.response?.data?.message || "Gagal mengekspor data.";
-        $toast.update(toastId, {
-          content: errorMessage,
-          options: { type: 'error', timeout: 5000 }
+        $swal.fire({
+            icon: 'error',
+            title: 'Oops... Terjadi Kesalahan',
+            text: errorMessage,
         });
+        console.error('Export Error:', error);
       }
     }
   });
@@ -234,12 +227,13 @@ const triggerImport = () => {
   importInput.value.click();
 };
 
+// ## PERBAIKAN 4: Fungsi Impor dengan Alur yang Benar
 const handleFileImport = async (event) => {
   const file = event.target.files[0];
   if (!file) return;
 
   $swal.fire({
-    title: 'Impor Data',
+    title: 'Impor Data Kategori',
     html: `Anda akan mengimpor file: <br><b>${file.name}</b><br><br>Pastikan format file sudah benar. Lanjutkan?`,
     icon: 'info',
     showCancelButton: true,
@@ -251,30 +245,32 @@ const handleFileImport = async (event) => {
       formData.append('file', file);
       
       const toastId = $toast.info('Mengunggah file, mohon tunggu...', { timeout: false });
+      
       try {
         const response = await categoryStore.importCategories(formData);
         
-        $toast.update(toastId, {
-          content: response.message || 'File diterima! Proses impor berjalan di background.',
-          options: { type: 'success', timeout: 8000 }
+        $toast.dismiss(toastId);
+        $swal.fire({
+            icon: 'success',
+            title: 'Impor Berhasil Dimulai!',
+            text: response.message || 'File Anda telah diterima dan akan diproses di background.',
+            timer: 5000,
+            showConfirmButton: false,
         });
         
         setTimeout(() => {
           categoryStore.fetchCategories();
-          $toast.success('Data diperbarui!');
-        }, 2000); 
+          $toast.info('Memperbarui daftar kategori...');
+        }, 5000); // Refresh data setelah 5 detik
 
       } catch (error) {
+        $toast.dismiss(toastId);
         const errorMessage = error.response?.data?.message || 'Gagal mengunggah file.';
-        $toast.update(toastId, {
-          content: errorMessage,
-          options: { type: 'error', timeout: 8000 }
-        });
+        $toast.error(errorMessage, { timeout: 8000 });
       } finally {
         importInput.value.value = '';
       }
     } else {
-      // Reset input jika pengguna membatalkan
       importInput.value.value = '';
     }
   });

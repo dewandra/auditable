@@ -3,7 +3,6 @@
     <h1 class="text-2xl font-bold mb-6">Manajemen Transaksi</h1>
 
     <div class="flex justify-between items-center mb-4">
-      <!-- Grup Tombol Utama -->
       <div class="flex space-x-2">
         <fwb-button @click="openCreateModal">
           Tambah Transaksi
@@ -14,7 +13,6 @@
       </div>
     </div>
 
-    <!-- Tabel Data -->
     <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
       <fwb-table>
         <fwb-table-head>
@@ -43,7 +41,9 @@
                 </fwb-badge>
             </fwb-table-cell>
             <fwb-table-cell>{{ transaction.quantity }}</fwb-table-cell>
-            <fwb-table-cell>{{ formatDate(transaction.created_at) }}</fwb-table-cell>
+            
+            <fwb-table-cell>{{ transaction.transaction_date }}</fwb-table-cell>
+            
             <fwb-table-cell class="text-right space-x-2">
               <fwb-button @click="openHistoryModal(transaction)" color="dark" size="sm">History</fwb-button>
             </fwb-table-cell>
@@ -52,7 +52,6 @@
       </fwb-table>
     </div>
 
-    <!-- Modal untuk Create -->
     <TransactionModal
       :show="showTransactionModal"
       :items="transactionStore.itemOptions"
@@ -60,7 +59,6 @@
       @submit="handleSubmit"
     />
 
-    <!-- Modal untuk History Audit -->
     <AuditHistoryModal
       :show="showHistoryModal"
       :audits="transactionStore.history"
@@ -129,11 +127,8 @@ const openHistoryModal = async (transaction) => {
   await transactionStore.fetchTransactionHistory(transaction.id);
 };
 
-// ========================================================================
-// FUNGSI EKSPOR TRANSAKSI
-// ========================================================================
-
 const handleExport = async () => {
+  // 1. Konfirmasi awal kepada pengguna
   $swal.fire({
     title: 'Ekspor Data Transaksi',
     text: 'Anda akan mengekspor semua data transaksi ke dalam file Excel. Lanjutkan?',
@@ -143,28 +138,59 @@ const handleExport = async () => {
     cancelButtonText: 'Batal',
   }).then(async (result) => {
     if (result.isConfirmed) {
-      const toastId = $toast.info('Mempersiapkan file ekspor...', { timeout: false });
+      // 2. Tampilkan SweetAlert "Loading" yang tidak bisa ditutup
+      $swal.fire({
+        title: 'Mempersiapkan Ekspor...',
+        html: 'Mohon tunggu, file sedang dibuat di server. ⏳',
+        timerProgressBar: true,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+          Swal.showLoading(); // Menampilkan ikon loading
+        },
+      });
+
       try {
+        // 3. Panggil API untuk memulai proses di backend
         const response = await transactionStore.exportTransactions();
         const downloadUrl = response.download_url;
 
-        $toast.dismiss(toastId);
+        // 4. Tunggu beberapa detik agar server selesai membuat file (PENTING!)
+        setTimeout(() => {
+          // 5. Tutup SweetAlert loading
+          Swal.close();
 
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.setAttribute('download', 'transactions-export.xlsx');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+          // 6. Mulai unduhan file
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          link.setAttribute('download', 'transactions-export.xlsx');
+          link.style.display = 'none';
 
-        $swal.fire('Berhasil!', 'File ekspor telah berhasil diunduh.', 'success');
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          // 7. Tampilkan notifikasi sukses singkat
+          $swal.fire({
+            icon: 'success',
+            title: 'Berhasil!',
+            text: 'Unduhan file ekspor telah dimulai.',
+            timer: 2000,
+            showConfirmButton: false
+          });
+
+        }, 7000); // Waktu tunggu 7 detik (sesuaikan jika perlu)
 
       } catch (error) {
+        // Jika terjadi error, tutup loading dan tampilkan pesan error
+        Swal.close();
         const errorMessage = error.response?.data?.message || "Gagal mengekspor data.";
-        $toast.update(toastId, {
-          content: errorMessage,
-          options: { type: 'error', timeout: 5000 }
+        $swal.fire({
+            icon: 'error',
+            title: 'Oops... Terjadi Kesalahan',
+            text: errorMessage,
         });
+        console.error('Export Error:', error);
       }
     }
   });

@@ -1,8 +1,8 @@
-import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import apiClient from '../api';
+import { defineStore } from "pinia";
+import { ref } from "vue";
+import apiClient from "../api";
 
-export const useItemStore = defineStore('item', () => {
+export const useItemStore = defineStore("item", () => {
   const items = ref([]);
   const history = ref([]);
   const loading = ref(false);
@@ -11,7 +11,7 @@ export const useItemStore = defineStore('item', () => {
   async function fetchItems() {
     loading.value = true;
     try {
-      const response = await apiClient.get('/items');
+      const response = await apiClient.get("/items");
       items.value = response.data.data || [];
     } catch (error) {
       console.error("Gagal mengambil data item:", error);
@@ -23,7 +23,7 @@ export const useItemStore = defineStore('item', () => {
 
   async function fetchCategoryOptions() {
     try {
-      const response = await apiClient.get('/category-options');
+      const response = await apiClient.get("/category-options");
       categoryOptions.value = response.data;
     } catch (error) {
       console.error("Gagal mengambil opsi kategori:", error);
@@ -47,8 +47,8 @@ export const useItemStore = defineStore('item', () => {
 
   async function createItem(itemData) {
     try {
-      const response = await apiClient.post('/items', itemData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const response = await apiClient.post("/items", itemData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       items.value.unshift(response.data.data);
       // Mengembalikan data agar bisa diakses di komponen jika perlu
@@ -62,9 +62,9 @@ export const useItemStore = defineStore('item', () => {
   async function updateItem(itemId, itemData) {
     try {
       const response = await apiClient.post(`/items/${itemId}`, itemData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { "Content-Type": "multipart/form-data" },
       });
-      const index = items.value.findIndex(i => i.id === itemId);
+      const index = items.value.findIndex((i) => i.id === itemId);
       if (index !== -1) {
         items.value[index] = response.data.data;
       }
@@ -78,7 +78,7 @@ export const useItemStore = defineStore('item', () => {
   async function deleteItem(itemId) {
     try {
       const response = await apiClient.delete(`/items/${itemId}`);
-      items.value = items.value.filter(i => i.id !== itemId);
+      items.value = items.value.filter((i) => i.id !== itemId);
       return response.data;
     } catch (error) {
       console.error("Gagal menghapus item:", error);
@@ -89,14 +89,12 @@ export const useItemStore = defineStore('item', () => {
   // ======================================================
   // FUNGSI EKSPOR & IMPOR DIPERBAIKI
   // ======================================================
-  async function exportItems() {
+  // GANTI FUNGSI exportItems LAMA ANDA DENGAN YANG INI
+  async function exportItems(payload) {
+    // Terima 'payload' sebagai argumen
     try {
-      // PERBAIKAN: Mengirim payload dengan 'fields' sesuai yang diharapkan backend
-      // untuk menyelesaikan error 422 (Unprocessable Content).
-      const payload = {
-        fields: ['name', 'category', 'quantity'] // Sesuai data dari Postman
-      };
-      const response = await apiClient.post('/items/export', payload);
+      // Sekarang payload (berisi 'fields') dikirim dari komponen
+      const response = await apiClient.post("/items/export", payload);
       return response.data;
     } catch (error) {
       console.error("Gagal mengekspor item:", error);
@@ -106,8 +104,8 @@ export const useItemStore = defineStore('item', () => {
 
   async function importItems(formData) {
     try {
-      const response = await apiClient.post('/items/import', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const response = await apiClient.post("/items/import", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       return response.data;
     } catch (error) {
